@@ -31,45 +31,21 @@ Now add it to your webpack configuration.
 The following is the configuration for a typescript project built using babel. If using just typescript to compile all you need to do is add the `react-docgen-typescript-loader` loader.
 
 ```js
-const path = require('path');
-const TSDocgenPlugin = require('react-docgen-typescript-loader');
+const isBabelRule = rule =>
+  (typeof rule === 'string' && rule.includes('babel-loader')) ||
+  (typeof rule.loader === 'string' && rule.loader.includes('babel-loader')) ||
+  (typeof rule.use === 'string' && rule.use.includes('babel-loader')) ||
+  (Array.isArray(rule.use) && rule.use.some(isBabelRule))
 
 module.exports = (baseConfig, env, config) => {
-  // Find Babel Loader
-  const babelRules = config.module.rules.filter(rule => {
-    let isBabelLoader = false;
-
-    if (rule.loader && rule.loader.includes('babel-loader')) {
-      isBabelLoader = true;
-    }
-
-    if (rule.use) {
-      rule.use.forEach(use => {
-        if (typeof use === 'string' && use.includes('babel-loader')) {
-          isBabelLoader = true;
-        } else if (
-          typeof use === 'object' &&
-          use.loader &&
-          use.loader.includes('babel-loader')
-        ) {
-          isBabelLoader = true;
-        }
-      });
-    }
-
-    return isBabelLoader;
-  });
-
-  // Add Typescript to Babel Loader Test
-  // Add react-docgen-typescript-loader to rule
-  babelRules.forEach(rule => {
-    rule.test = /\.(jsx|js|ts|tsx)$/;
-    rule.use.push({
-      loader: require.resolve('react-docgen-typescript-loader')
-    });
+  // Added docgen to babel loaders.
+  for (const rule of config.module.rules.filter(isBabelRule)) {
+    // Add support to TypeScript extensions.
+    rule.test = /\.(jsx|js|ts|tsx)$/
+    rule.use.push({ loader: 'react-docgen-typescript-loader' })
     // Remove babel docgen plugin (avoid duplicates)
-    rule.use[0].options.plugins = rule.use[0].options.plugins.slice(0, 3);
-  });
+    rule.use[0].options.plugins = rule.use[0].options.plugins.slice(0, 3)
+  }
 
   config.resolve.extensions.push('.ts', '.tsx', '.json');
 
